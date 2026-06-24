@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()// login is public
                         .requestMatchers(HttpMethod.GET, "/api/v1/employee/get").permitAll()// for showing drop down of employees in register page
+                        .requestMatchers(HttpMethod.GET, "/api/v1/employee/get/**").permitAll()// for showing drop down of employees in register page
                         .requestMatchers(HttpMethod.GET, "/api/v1/ipr-notification/get/active").permitAll()
                         .anyRequest().authenticated()                   // everything else needs token
                 )
