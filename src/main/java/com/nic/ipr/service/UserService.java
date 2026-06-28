@@ -1,6 +1,7 @@
 package com.nic.ipr.service;
 
 import com.nic.ipr.entity.Employee;
+import com.nic.ipr.exception.ResourceNotFoundException;
 import com.nic.ipr.repository.EmployeeRepository;
 import com.nic.ipr.exception.BadRequestException;
 import com.nic.ipr.entity.User;
@@ -51,6 +52,13 @@ public class UserService {
         }
 
         userRepository.save(user);
+    }
+
+
+    public String getUserRole(String username){
+        return userRepository.findByUsername(username)
+                .orElseThrow(()->new ResourceNotFoundException("User Not Found"))
+                .getRole();
     }
 
     /// checks in database whether the person trying to login has registered or not

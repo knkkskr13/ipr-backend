@@ -19,16 +19,31 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
+    //-----------------Token Generation--- ENCRYPTION-------------//
+
     // Generate token for a username
-    public String generateToken(String username) {
+    public String generateToken(String username,String role) {
         return Jwts.builder()
                 .subject(username)                     // 1. Set the subject (the user identity)
-                .issuedAt(new Date())                  // 2. Add the issue timestamp (when token was created)
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION)) // 3. Set expiry time (10 hours later)
-                .signWith(getSigningKey())             // 4. Sign the token using your secret key (HMAC-SHA)
-                .compact();                            // 5. Build and return the final JWT string
+                .claim("role", role)             //2.Embed the role into the token claims payload
+                .issuedAt(new Date())                  // 3. Add the issue timestamp (when token was created)
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION)) // 4. Set expiry time (10 hours later)
+                .signWith(getSigningKey())             // 5. Sign the token using your secret key (HMAC-SHA)
+                .compact();                            // 6. Build and return the final JWT string
     }
+    //----------------------------------------------------------//
 
+
+
+    // helper method , helps in extraction of role in JwtUtil.java
+    public String extractRole(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
+    }
 
     // Extract username from token
     public String extractUsername(String token) {

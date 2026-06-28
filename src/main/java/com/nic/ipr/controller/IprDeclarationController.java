@@ -1,7 +1,9 @@
 package com.nic.ipr.controller;
 
-import com.nic.ipr.entity.IprDeclaration;
+import com.nic.ipr.dto.request.IprDeclarationRequest;
+import com.nic.ipr.dto.response.IprDeclarationResponse;
 import com.nic.ipr.service.IprDeclarationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,19 +15,21 @@ public class IprDeclarationController {
     private final IprDeclarationService declarationService;
 
     @GetMapping("/get/{iprId}")
-    public IprDeclaration getDeclarationByIprId(@PathVariable Long iprId) {
+    public IprDeclarationResponse getDeclarationByIprId(@PathVariable Long iprId) {
         return declarationService.getDeclarationByIprId(iprId);
     }
 
     @PostMapping("/add")
-    public IprDeclaration addDeclaration(@RequestBody IprDeclaration declaration) {
-        return declarationService.addDeclaration(declaration);
+    public IprDeclarationResponse addDeclaration(
+            @Valid @RequestBody IprDeclarationRequest request) {
+        return declarationService.addDeclaration(request);
     }
 
     @PutMapping("/update/{id}")
-    public IprDeclaration updateDeclaration(@PathVariable Long id,
-                                            @RequestBody IprDeclaration declaration) {
-        return declarationService.updateDeclaration(id, declaration);
+    public IprDeclarationResponse updateDeclaration(
+            @PathVariable Long id,
+            @Valid @RequestBody IprDeclarationRequest request) {
+        return declarationService.updateDeclaration(id, request);
     }
 
     @DeleteMapping("/delete/{id}")

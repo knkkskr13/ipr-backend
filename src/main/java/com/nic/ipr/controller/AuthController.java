@@ -1,7 +1,10 @@
 package com.nic.ipr.controller;
 
+import com.nic.ipr.dto.request.LoginRequest;
+import com.nic.ipr.dto.request.RegisterRequest;
 import com.nic.ipr.security.JwtUtil;
 import com.nic.ipr.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,33 +21,29 @@ public class AuthController {
     private UserService userService;
 
     @PostMapping("/register")
-    public Map<String, String> register(@RequestBody Map<String, String> request) {
+    public Map<String, String> register(@Valid @RequestBody RegisterRequest request) {
 
-        Long employeeId = null;
-
-        if (request.get("employeeId") != null) {
-            employeeId = Long.parseLong(request.get("employeeId"));// converts string coming from api request to Long
-        }
 
         userService.registerUser(
-                request.get("username"),
-                request.get("password"),
-                request.get("role"),
-                employeeId
+                request.getUsername(),
+                request.getPassword(),
+                request.getRole(),
+                request.getEmployeeId()
         );
-
         return Map.of("message", "User registered successfully");
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody Map<String, String> credentials) {
+    public Map<String, String> login(@Valid @RequestBody LoginRequest LoginCredentials) {
         boolean isValidLogin = userService.validateLogin(
-                credentials.get("username"),
-                credentials.get("password")
+                LoginCredentials.getUsername(),
+                LoginCredentials.getPassword()
         );
 
         if (isValidLogin) {
-            String token = jwtUtil.generateToken(credentials.get("username"));
+            String username = LoginCredentials.getUsername();
+            String role = userService.getUserRole(username);//because role isnt sent through Login credentials
+            String token = jwtUtil.generateToken(username,role);
             return Map.of("token", token);
         } else {
             throw new RuntimeException("Invalid credentials");

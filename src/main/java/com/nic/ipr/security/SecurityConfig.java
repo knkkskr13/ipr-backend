@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,6 +14,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -28,8 +30,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()// login is public
                         .requestMatchers(HttpMethod.GET, "/api/v1/employee/get").permitAll()// for showing drop down of employees in register page
-                        .requestMatchers(HttpMethod.GET, "/api/v1/employee/get/**").permitAll()// for showing drop down of employees in register page
-                        .requestMatchers(HttpMethod.GET, "/api/v1/ipr-notification/get/active").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/employee/get/**").permitAll()// for showing drop down of employees in register page
+//                        .requestMatchers(HttpMethod.GET, "/api/v1/ipr-notification/get/active").permitAll()
                         .anyRequest().authenticated()                   // everything else needs token
                 )
                 .sessionManagement(session -> session

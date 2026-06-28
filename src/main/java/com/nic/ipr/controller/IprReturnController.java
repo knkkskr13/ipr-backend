@@ -1,8 +1,12 @@
 package com.nic.ipr.controller;
 
-import com.nic.ipr.entity.IprReturn;
+import com.nic.ipr.dto.request.IprReturnRequest;
+import com.nic.ipr.dto.request.IprReturnUpdateRequest;
+import com.nic.ipr.dto.response.IprReturnResponse;
 import com.nic.ipr.service.IprReturnService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,38 +19,39 @@ public class IprReturnController {
     private final IprReturnService iprReturnService;
 
     @GetMapping("/get")
-    public List<IprReturn> getAllIprReturns() {
+    public List<IprReturnResponse> getAllIprReturns() {
         return iprReturnService.getAllIprReturns();
     }
 
     @GetMapping("/get/{id}")
-    public IprReturn getIprReturnById(@PathVariable Long id) {
+    public IprReturnResponse getIprReturnById(@PathVariable Long id) {
         return iprReturnService.getIprReturnById(id);
     }
 
     @GetMapping("/get/employee/{employeeId}")
-    public List<IprReturn> getIprReturnsByEmployeeId(@PathVariable Long employeeId) {
+    public List<IprReturnResponse> getIprReturnsByEmployeeId(@PathVariable Long employeeId) {
         return iprReturnService.getIprReturnsByEmployeeId(employeeId);
     }
 
     @PostMapping("/add")
-    public IprReturn addIprReturn(@RequestBody IprReturn iprReturn) {
-        return iprReturnService.addIprReturn(iprReturn);
+    public IprReturnResponse addIprReturn(@Valid @RequestBody IprReturnRequest request) {
+        return iprReturnService.addIprReturn(request);
     }
 
     @PutMapping("/update/{id}")
-    public IprReturn updateIprReturn(@PathVariable Long id,
-                                     @RequestBody IprReturn iprReturn) {
-        return iprReturnService.updateIprReturn(id, iprReturn);
+    public IprReturnResponse updateIprReturn(@PathVariable Long id,
+                                             @Valid @RequestBody IprReturnUpdateRequest request) {
+        return iprReturnService.updateIprReturn(id, request);
     }
 
     @PutMapping("/update/{id}/submit")
-    public IprReturn submitIprReturn(@PathVariable Long id) {
+    public IprReturnResponse submitIprReturn(@PathVariable Long id) {
         return iprReturnService.submitIprReturn(id);
     }
 
     @PutMapping("/update/{id}/approve")
-    public IprReturn approveIprReturn(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public IprReturnResponse approveIprReturn(@PathVariable Long id) {
         return iprReturnService.approveIprReturn(id);
     }
 

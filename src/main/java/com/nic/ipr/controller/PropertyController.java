@@ -1,8 +1,11 @@
 package com.nic.ipr.controller;
 
-import com.nic.ipr.entity.Property;
+import com.nic.ipr.dto.request.PropertyRequest;
+import com.nic.ipr.dto.response.PropertyResponse;
 import com.nic.ipr.service.PropertyService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,29 +18,30 @@ public class PropertyController {
     private final PropertyService propertyService;
 
     @GetMapping("/get")
-    public List<Property> getAllProperties() {
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<PropertyResponse> getAllProperties() {
         return propertyService.getAllProperties();
     }
 
     @GetMapping("/get/{id}")
-    public Property getPropertyById(@PathVariable Long id) {
+    public PropertyResponse getPropertyById(@PathVariable Long id) {
         return propertyService.getPropertyById(id);
     }
 
     @GetMapping("/get/ipr/{iprId}")
-    public List<Property> getPropertiesByIprId(@PathVariable Long iprId) {
+    public List<PropertyResponse> getPropertiesByIprId(@PathVariable Long iprId) {
         return propertyService.getPropertiesByIprId(iprId);
     }
 
     @PostMapping("/add")
-    public Property addProperty(@RequestBody Property property) {
-        return propertyService.addProperty(property);
+    public PropertyResponse addProperty(@Valid @RequestBody PropertyRequest request) {
+        return propertyService.addProperty(request);
     }
 
     @PutMapping("/update/{id}")
-    public Property updateProperty(@PathVariable Long id,
-                                   @RequestBody Property property) {
-        return propertyService.updateProperty(id, property);
+    public PropertyResponse updateProperty(@PathVariable Long id,
+                                           @Valid @RequestBody PropertyRequest request) {
+        return propertyService.updateProperty(id, request);
     }
 
     @DeleteMapping("/delete/{id}")

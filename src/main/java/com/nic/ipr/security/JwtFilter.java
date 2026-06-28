@@ -6,10 +6,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,36 +29,39 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Skip JWT check for login endpoint
-        if (request.getServletPath().contains("/api/v1/auth") || request.getServletPath().contains("/api/v1/employee/{id}")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        // 1. Get Authorization header from request
+        // 1. Only pass through the filter if it contains an Auth Header
         String authHeader = request.getHeader("Authorization");
 
         String token = null;
         String username = null;
 
-        // 2. Check if header has a Bearer token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7); // remove "Bearer " prefix
+            token = authHeader.substring(7);
             username = jwtUtil.extractUsername(token);
         }
 
-        // 3. If valid username and not already authenticated
+        // 2. If we have a username and the context isn't authenticated yet
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (jwtUtil.validateToken(token, username)) {
-                // 4. Tell Spring Security this user is authenticated
+
+                // Extract the role from the token claims
+                String role = jwtUtil.extractRole(token); // We will add this helper to JwtUtil next
+
+                // Format role correctly for Spring Security convention (e.g., ROLE_ADMIN)
+                String springRole = "ROLE_" + role.toUpperCase();
+
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of());
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null, // there is no password in token also no need to see password for validation already done by AuthController
+                                List.of(new SimpleGrantedAuthority(springRole)) // 👈 Roles are now properly assigned!
+                        );
+
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // 5. Continue to next filter or controller
         filterChain.doFilter(request, response);
     }
 }
