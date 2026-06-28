@@ -2,6 +2,7 @@ package com.nic.ipr.controller;
 
 import com.nic.ipr.dto.request.LoginRequest;
 import com.nic.ipr.dto.request.RegisterRequest;
+import com.nic.ipr.exception.BadRequestException;
 import com.nic.ipr.security.JwtUtil;
 import com.nic.ipr.service.UserService;
 import jakarta.validation.Valid;
@@ -46,7 +47,7 @@ public class AuthController {
             String token = jwtUtil.generateToken(username,role);
             return Map.of("token", token);
         } else {
-            throw new RuntimeException("Invalid credentials");
+            throw new BadRequestException("Invalid username or password");
         }
     }
 }
