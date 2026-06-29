@@ -21,12 +21,11 @@ public interface IprReturnRepository extends JpaRepository<IprReturn, Long> {
     List<IprReturn> findByEmployeeId(Long employeeId);
 
     // Get specific year's IPR return for an employee
-    // SELECT i FROM IprReturn i WHERE i.employee.id = ?1 AND i.reportingYear = ?2
+
     @Query("SELECT i FROM IprReturn i WHERE i.employee.id = ?1 AND i.reportingYear = ?2")
     Optional<IprReturn> findByEmployeeIdAndReportingYear(Long employeeId, String reportingYear);
 
     // Get all IPR returns by status — e.g. all SUBMITTED ones for admin
-    // SELECT i FROM IprReturn i WHERE i.status = ?1
     @Query("SELECT i FROM IprReturn i WHERE i.status = ?1")
     List<IprReturn> findByStatus(IprStatus status);
 }

@@ -80,7 +80,7 @@ public class IprReturnServiceImpl implements IprReturnService {
         response.setCreatedAt(iprReturn.getCreatedAt());
         response.setUpdatedAt(iprReturn.getUpdatedAt());
 
-        // Flatten employee fields — no nested object!
+        // Flatten employee fields by not sending Employee Object
         Employee employee = iprReturn.getEmployee();
         if (employee != null) {
             response.setEmployeeId(employee.getId());
@@ -146,6 +146,10 @@ public class IprReturnServiceImpl implements IprReturnService {
 
         // Get logged in user
         User user = getCurrentUser();
+        //safety for admin --if called by admin backend cant fetch user.getEmployee() and crash
+        if (user.getRole().equalsIgnoreCase("ADMIN")) {
+            throw new BadRequestException("Admins cannot file IPR returns");
+        }
 
         // Verify employee owns this — they can only file for themselves
         verifyEmployeeAccess(request.getEmployeeId());
