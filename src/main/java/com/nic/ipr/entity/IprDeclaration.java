@@ -32,6 +32,7 @@ public class IprDeclaration {
     private IprReturn iprReturn;
 
     // "I hereby declare that the return enclosed is complete, true and correct"
+    @Column(columnDefinition = "TEXT")
     private String declarationText;
 
     private Boolean agreed = false;
