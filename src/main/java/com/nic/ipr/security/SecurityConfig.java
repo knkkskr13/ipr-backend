@@ -1,44 +1,53 @@
 package com.nic.ipr.security;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Autowired
-    private CorsConfigurationSource corsConfigurationSource;
-    @Autowired
-    private JwtFilter jwtFilter;
+    private final JwtFilter jwtFilter; // Just ONE filter now!
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()// login is public
-                        .requestMatchers(HttpMethod.GET, "/api/v1/employee/get").permitAll()// for showing drop down of employees in register page
-//                        .requestMatchers(HttpMethod.GET, "/api/v1/employee/get/**").permitAll()// for showing drop down of employees in register page
-//                        .requestMatchers(HttpMethod.GET, "/api/v1/ipr-notification/get/active").permitAll()
-                        .anyRequest().authenticated()                   // everything else needs token
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // One unified auth endpoint for everyone
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Public authority master data endpoints
+                        .requestMatchers("/api/v1/authority/**").permitAll()
+                        // Any public GET endpoints you want to leave open
+                        .requestMatchers(HttpMethod.GET, "/api/v1/department/get").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/office/get").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // no sessions, only tokens
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
