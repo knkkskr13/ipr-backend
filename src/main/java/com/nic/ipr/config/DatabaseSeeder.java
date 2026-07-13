@@ -1,9 +1,10 @@
 package com.nic.ipr.config;
 
 import com.nic.ipr.hod.entity.Department;
+import com.nic.ipr.hod.entity.Office;
 import com.nic.ipr.employee.entity.Employee;
 import com.nic.ipr.employee.entity.User;
-import com.nic.ipr.hod.entity.Office;
+
 import com.nic.ipr.hod.repository.DepartmentRepository;
 import com.nic.ipr.hod.repository.OfficeRepository;
 import com.nic.ipr.employee.repository.EmployeeRepository;
@@ -28,6 +29,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // 1. Safety Check: If users already exist, don't duplicate them!
         if (userRepository.count() > 0) {
             log.info("Database already seeded. Skipping automated setup...");
             return;
@@ -40,19 +42,28 @@ public class DatabaseSeeder implements CommandLineRunner {
         financeDept.setName("Finance Department");
         financeDept = departmentRepository.save(financeDept);
 
-        // 3. Create the Office
+        // 3a. Create the Subordinate Office (For regular staff)
         Office mainOffice = new Office();
         mainOffice.setName("Directorate of Finance");
         mainOffice.setDepartment(financeDept);
         mainOffice = officeRepository.save(mainOffice);
 
-        // 4. Create the HOD
+        // 3b. Create the Headquarters Office (For the HOD)
+        Office hqOffice = new Office();
+        hqOffice.setName("Finance Secretariat");
+        hqOffice.setDepartment(financeDept);
+        hqOffice = officeRepository.save(hqOffice);
+
+        // 4. Create the HOD (Assigned to the Secretariat)
         Employee hodEmp = new Employee();
         hodEmp.setName("Rajesh Kumar");
         hodEmp.setEmail("rajesh.hod@tripura.gov.in");
+        hodEmp.setService("Tripura Civil Service");
+        hodEmp.setLengthOfService("18 years");
         hodEmp.setPresentPostHeld("Joint Secretary");
+        hodEmp.setPlaceOfPosting("Finance Secretariat, Agartala");
         hodEmp.setDepartment(financeDept);
-        hodEmp.setOffice(mainOffice);
+        hodEmp.setOffice(hqOffice); // Administratively placed at HQ
         hodEmp = employeeRepository.save(hodEmp);
 
         User hodUser = new User();
@@ -62,11 +73,14 @@ public class DatabaseSeeder implements CommandLineRunner {
         hodUser.setEmployee(hodEmp);
         userRepository.save(hodUser);
 
-        // 5. Create a Standard Employee
+        // 5. Create a Standard Employee (Assigned to Subordinate Office)
         Employee standardEmp = new Employee();
         standardEmp.setName("Amit Saha");
         standardEmp.setEmail("amit.saha@tripura.gov.in");
+        standardEmp.setService("Tripura Finance Service");
+        standardEmp.setLengthOfService("9 years");
         standardEmp.setPresentPostHeld("Senior IT Officer");
+        standardEmp.setPlaceOfPosting("Directorate of Finance, Agartala");
         standardEmp.setDepartment(financeDept);
         standardEmp.setOffice(mainOffice);
         standardEmp = employeeRepository.save(standardEmp);
