@@ -32,7 +32,6 @@ public class SecurityConfig {
                         // One unified auth endpoint for everyone
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Public authority master data endpoints
-                        .requestMatchers("/api/v1/authority/**").permitAll()
                         // Any public GET endpoints you want to leave open
                         .requestMatchers(HttpMethod.GET, "/api/v1/department/get").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/office/get").permitAll()

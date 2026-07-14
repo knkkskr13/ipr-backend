@@ -1,0 +1,462 @@
+###
+# ============================================================
+# IPR MANAGEMENT SYSTEM - COMPLETE API TEST FILE
+# ============================================================
+# INSTRUCTIONS:
+# 1. Run PUBLIC steps first (no token needed)
+# 2. After Step 8  (HOD Login)      → update @ hodToken below
+# 3. After Step 10 (Employee Login) → update @ employeeToken below
+
+
+@baseUrl = http://localhost:8081
+@hodToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyYWplc2guaG9kIiwicm9sZSI6IkhPRCIsImhvZElkIjoxLCJkZXBhcnRtZW50SWQiOjEsImlhdCI6MTc4MzM5NjA2OCwiZXhwIjoxNzgzNDMyMDY4fQ.8NsQneOh4eRm5zv3YxsxNC7v317kodi35TvLlRCZaPA
+@employeeToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbWl0LnNoYXJtYSIsInJvbGUiOiJFTVBMT1lFRSIsImlhdCI6MTc4MzM5NzQzMywiZXhwIjoxNzgzNDMzNDMzfQ.PEet89XzEEdtCPK2WQGc_A8m2Ng6uF15m6pa0K3eVE8
+# ============================================================
+# AUTHORITY - PUBLIC ENDPOINTS (department / office / hod master data)
+# ============================================================
+
+### [PUBLIC] Step 1 - Create Department
+POST {{baseUrl}}/api/v1/authority/department/add
+Content-Type: application/json
+
+{
+  "name": "Finance Department"
+}
+
+### [PUBLIC] Step 1.1 - Update Department
+PUT {{baseUrl}}/api/v1/authority/department/update/2
+Content-Type: application/json
+
+{
+  "name": "Finance IT Office"
+}
+
+### [PUBLIC] Step 1.2 - Delete Department (run only at the very end, if at all)
+DELETE {{baseUrl}}/api/v1/authority/department/delete/1
+
+### [PUBLIC] Step 2 - Create Office
+POST {{baseUrl}}/api/v1/authority/office/add
+Content-Type: application/json
+
+{
+  "name": "IT Office",
+  "departmentId": 1
+}
+
+### [PUBLIC] Step 2.1 - Update Office
+PUT {{baseUrl}}/api/v1/authority/office/update/1
+Content-Type: application/json
+
+{
+  "name": "Finance Head Office Updated",
+  "departmentId": 1
+}
+
+### [PUBLIC] Step 2.2 - Delete Office (run only at the very end, if at all)
+DELETE {{baseUrl}}/api/v1/authority/office/delete/1
+
+### [PUBLIC] Step 3 - Create HOD
+POST {{baseUrl}}/api/v1/authority/hod/add
+Content-Type: application/json
+
+{
+  "name": "Rajesh Kumar",
+  "email": "rajesh.kumar@nic.in",
+  "departmentId": 1
+}
+
+### [PUBLIC] Step 3.1 - Update HOD
+PUT {{baseUrl}}/api/v1/authority/hod/update/1
+Content-Type: application/json
+
+{
+  "name": "Rajesh Kumar",
+  "email": "rajesh.kumar@nic.in",
+  "departmentId": 1
+}
+
+### [PUBLIC] Step 3.2 - Delete HOD (run only at the very end, if at all)
+DELETE {{baseUrl}}/api/v1/authority/hod/delete/1
+
+### [PUBLIC] Step 4 - Get All HODs (for registration dropdown)
+GET {{baseUrl}}/api/v1/hod/get/all
+
+### [PUBLIC] Step 5 - Get All Departments (for registration dropdown)
+GET {{baseUrl}}/api/v1/hod/department/get
+
+### [PUBLIC] Step 6 - Get All Employees (for dropdown)
+GET {{baseUrl}}/api/v1/employee/employees/get
+
+# ============================================================
+# HOD AUTH - PUBLIC ENDPOINTS
+# ============================================================
+
+### [PUBLIC] Step 7 - Register HOD Credentials
+POST {{baseUrl}}/api/v1/hod/auth/register
+Content-Type: application/json
+
+{
+  "hodId": 1,
+  "username": "rajesh.hod",
+  "password": "password123"
+}
+
+### [PUBLIC] Step 8 - HOD Login → COPY TOKEN → PASTE IN @hodToken ABOVE
+POST {{baseUrl}}/api/v1/hod/auth/login
+Content-Type: application/json
+
+{
+  "username": "rajesh.hod",
+  "password": "password123"
+}
+
+### ============================================================
+# EMPLOYEE DATA CREATION - NEEDS HOD TOKEN
+# ============================================================
+
+### [HOD] Step 8.5 - Create Employee Master Record
+POST {{baseUrl}}/api/v1/employee/employees/add
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "name": "Amit Sharma",
+  "email": "amit.sharma@nic.in",
+  "service": "State Civil Service",
+  "department": "Finance Department",
+  "lengthOfService": "5 years",
+  "presentPostHeld": "Accounts Officer",
+  "placeOfPosting": "Finance Head Office",
+  "officeId": 1
+}
+
+### ============================================================
+# EMPLOYEE AUTH - PUBLIC ENDPOINTS
+# ============================================================
+
+### [PUBLIC] Step 9 - Employee Register (use "id" from Step 8.5 as employeeId)
+POST {{baseUrl}}/api/v1/employee/auth/register
+Content-Type: application/json
+
+{
+  "username": "amit.sharma",
+  "password": "password123",
+  "employeeId": 1
+}
+
+### [PUBLIC] Step 10 - Employee Login → COPY TOKEN → PASTE IN @employeeToken ABOVE
+POST {{baseUrl}}/api/v1/employee/auth/login
+Content-Type: application/json
+
+{
+  "username": "amit.sharma",
+  "password": "password123"
+}
+
+### ============================================================
+# HOD PROTECTED ENDPOINTS (HOD token required)
+# ============================================================
+
+### [HOD] Step 11 - HOD Get Me
+GET {{baseUrl}}/api/v1/hod/user/get/me
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 12 - Get Department By Id
+GET {{baseUrl}}/api/v1/hod/department/get/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 13 - Get All Offices
+GET {{baseUrl}}/api/v1/hod/office/get
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 14 - Get Office By Id
+GET {{baseUrl}}/api/v1/hod/office/get/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 15 - Get Offices By Department Id
+GET {{baseUrl}}/api/v1/hod/office/get/department/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 16 - Add Office (via HOD) -- Removed
+POST {{baseUrl}}/api/v1/hod/office/add
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "name": "Finance Branch Office",
+  "departmentId": 1
+}
+
+### [HOD] Step 17 - Update Office (via HOD) -- Removed
+PUT {{baseUrl}}/api/v1/hod/office/update/1
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "name": "Finance Head Office Updated",
+  "departmentId": 1
+}
+
+### [HOD] Step 18 - Delete Office (via HOD) -- Removed
+DELETE {{baseUrl}}/api/v1/hod/office/delete/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 19 - Create IPR Notification (opens filing window)
+POST {{baseUrl}}/api/v1/hod/ipr-notification/add
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "session": "2026-27",
+  "message": "Annual IPR filing is now open for 2026-27",
+  "officeId": 1,
+  "startDate": "2026-07-07",
+  "endDate": "2026-08-21",
+  "active": true
+}
+
+### [HOD] Step 20 - Get All (active + inactive) Notifications (no office filter)
+GET {{baseUrl}}/api/v1/hod/ipr-notification/get
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 20.1 - Get All Active Notifications (no office filter)
+GET {{baseUrl}}/api/v1/hod/ipr-notification/get/active
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 21 - Get All (active + inactive) Notifications By Office
+GET {{baseUrl}}/api/v1/hod/ipr-notification/get/office/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD/EMPLOYEE] Step 22 - Get Active Notification By Office -- both HOD and Employee tokens work (isAuthenticated)
+GET {{baseUrl}}/api/v1/hod/ipr-notification/get/active/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 23 - Update IPR Notification
+PUT {{baseUrl}}/api/v1/hod/ipr-notification/update/1
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "session": "2026-27",
+  "message": "Annual IPR filing window extended",
+  "officeId": 1,
+  "startDate": "2026-07-07",
+  "endDate": "2026-09-05",
+  "active": true
+}
+
+### [HOD] Step 24 - Get All IPR Returns For the Department of HOD
+GET {{baseUrl}}/api/v1/hod/ipr-return/get
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 25 - Get Pending IPR Returns (SUBMITTED status)
+GET {{baseUrl}}/api/v1/hod/ipr-return/get/pending
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 26 - Get IPR Return By Id
+GET {{baseUrl}}/api/v1/hod/ipr-return/get/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 27 - Approve IPR Return
+PUT {{baseUrl}}/api/v1/hod/ipr-return/approve/1
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "remarks": "Approved after review. All details are correct."
+}
+
+### [HOD] Step 28 - Return IPR Back To Employee (requires remarks)
+PUT {{baseUrl}}/api/v1/hod/ipr-return/return/1
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "remarks": "Please correct the annual income figure and resubmit."
+}
+
+### [HOD] Step 29 - Get Workflow Log By IPR Id
+GET {{baseUrl}}/api/v1/hod/workflow-log/get/ipr/1
+Authorization: Bearer {{hodToken}}
+
+### [HOD] Step 30 - Delete IPR Notification
+DELETE {{baseUrl}}/api/v1/hod/ipr-notification/delete/1
+Authorization: Bearer {{hodToken}}
+
+# ============================================================
+# EMPLOYEE PROTECTED ENDPOINTS (Employee token required)
+# ============================================================
+
+### [PUBLIC] Step 31 - Employee Login (refresh token)
+POST {{baseUrl}}/api/v1/employee/auth/login
+Content-Type: application/json
+
+{
+  "username": "amit.sharma",
+  "password": "password123"
+}
+
+### [EMPLOYEE] Step 32 - Employee Get Me
+GET {{baseUrl}}/api/v1/employee/user/get/me
+Authorization: Bearer {{employeeToken}}
+
+### [PUBLIC] Step 33 - Get All Employees [Public - for employee dropdown in Login Page]
+GET {{baseUrl}}/api/v1/employee/employees/get
+
+### [EMPLOYEE] Step 34 - Get Employee By Id
+GET {{baseUrl}}/api/v1/employee/employees/get/1
+Authorization: Bearer {{employeeToken}}
+
+### [HOD] Step 35 - Update Employee Profile
+PUT {{baseUrl}}/api/v1/employee/employees/update/1
+Authorization: Bearer {{hodToken}}
+Content-Type: application/json
+
+{
+  "name": "Amit Sharma",
+  "email": "amit.sharma@nic.in",
+  "service": "IAS",
+  "department": "Finance Department",
+  "lengthOfService": "5 years",
+  "presentPostHeld": "Accounts Officer",
+  "placeOfPosting": "Guwahati",
+  "officeId": 1
+}
+
+### [EMPLOYEE] Step 36 - Get My IPR Returns
+GET {{baseUrl}}/api/v1/employee/ipr-return/get
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 37 - Create IPR Return
+POST {{baseUrl}}/api/v1/employee/ipr-return/add
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "reportingYear": "2026",
+  "asOnDate": "2026-07-31",
+  "totalAnnualIncome": 850000.00,
+  "isNoProperty": false
+}
+
+### [EMPLOYEE] Step 38 - Get IPR Return By Id
+GET {{baseUrl}}/api/v1/employee/ipr-return/get/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 39 - Get IPR Returns By Employee Id
+GET {{baseUrl}}/api/v1/employee/ipr-return/get/employee/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 40 - Update IPR Return (only DRAFT)
+PUT {{baseUrl}}/api/v1/employee/ipr-return/update/1
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "reportingYear": "2026",
+  "asOnDate": "2026-08-04",
+  "totalAnnualIncome": 920000.00,
+  "isNoProperty": false
+}
+
+### [EMPLOYEE] Step 41 - Add Property To IPR Return
+POST {{baseUrl}}/api/v1/employee/property/add
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "iprReturnId": 1,
+  "locationAddress": "123 MG Road, Guwahati, Assam",
+  "propertyType": "LAND",
+  "propertyDescription": "Agricultural land inherited from father",
+  "acquisitionCost": 500000.00,
+  "acquisitionYear": "2015",
+  "presentValue": 2500000.00,
+  "ownerName": "Amit Sharma",
+  "ownerRelation": "SELF",
+  "acquisitionMode": "INHERITANCE",
+  "acquisitionDetails": "Inherited from father after his demise in 2015",
+  "annualIncome": 25000.00,
+  "remarks": "Land used for farming"
+}
+
+### [EMPLOYEE] Step 42 - Get Properties By IPR Id
+GET {{baseUrl}}/api/v1/employee/property/get/ipr/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 43 - Update Property
+PUT {{baseUrl}}/api/v1/employee/property/update/1
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "iprReturnId": 1,
+  "locationAddress": "123 MG Road, Guwahati, Assam",
+  "propertyType": "LAND",
+  "propertyDescription": "Agricultural land inherited from father - updated",
+  "acquisitionCost": 500000.00,
+  "acquisitionYear": "2015",
+  "presentValue": 3000000.00,
+  "ownerName": "Amit Sharma",
+  "ownerRelation": "SELF",
+  "acquisitionMode": "INHERITANCE",
+  "acquisitionDetails": "Inherited from father after his demise in 2015",
+  "annualIncome": 30000.00,
+  "remarks": "Land used for farming - value updated"
+}
+
+### [EMPLOYEE] Step 44 - Add IPR Declaration
+POST {{baseUrl}}/api/v1/employee/ipr-declaration/add
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "iprReturnId": 1,
+  "declarationText": "I hereby declare that the information provided in this IPR return is true and correct to the best of my knowledge and belief.",
+  "agreed": true,
+  "declarationDate": "2026-07-04",
+  "place": "Guwahati",
+  "employeeSignature": "Amit Sharma"
+}
+
+### [EMPLOYEE] Step 45 - Get Declaration By IPR Id
+GET {{baseUrl}}/api/v1/employee/ipr-declaration/get/ipr/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 46 - Update Declaration
+PUT {{baseUrl}}/api/v1/employee/ipr-declaration/update/1
+Authorization: Bearer {{employeeToken}}
+Content-Type: application/json
+
+{
+  "iprReturnId": 1,
+  "declarationText": "I hereby declare that the information provided is true and correct.",
+  "agreed": true,
+  "declarationDate": "2026-07-04",
+  "place": "Guwahati",
+  "employeeSignature": "Amit Sharma"
+}
+
+### [EMPLOYEE] Step 47 - Submit IPR Return
+PUT {{baseUrl}}/api/v1/employee/ipr-return/submit/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 48 - Get Workflow Log By IPR Id
+GET {{baseUrl}}/api/v1/employee/workflow-log/get/ipr/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 49 - Delete Property
+DELETE {{baseUrl}}/api/v1/employee/property/delete/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 50 - Delete Declaration
+DELETE {{baseUrl}}/api/v1/employee/ipr-declaration/delete/1
+Authorization: Bearer {{employeeToken}}
+
+### [EMPLOYEE] Step 51 - Delete IPR Return (only DRAFT status)
+DELETE {{baseUrl}}/api/v1/employee/ipr-return/delete/1
+Authorization: Bearer {{employeeToken}}
+
+### [HOD] Step 52 - Delete Employee
+DELETE {{baseUrl}}/api/v1/employee/employees/delete/2
+Authorization: Bearer {{hodToken}}
