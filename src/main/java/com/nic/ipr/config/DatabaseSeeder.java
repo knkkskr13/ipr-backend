@@ -58,7 +58,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         Employee hodEmp = new Employee();
         hodEmp.setName("Rajesh Kumar");
         hodEmp.setEmail("rajesh.hod@tripura.gov.in");
+        hodEmp.setService("Tripura Civil Service");
+        hodEmp.setLengthOfService("18 years");
         hodEmp.setPresentPostHeld("Joint Secretary");
+        hodEmp.setPlaceOfPosting("Finance Secretariat, Agartala");
         hodEmp.setDepartment(financeDept);
         hodEmp.setOffice(hqOffice); // Administratively placed at HQ
         hodEmp = employeeRepository.save(hodEmp);
@@ -74,7 +77,10 @@ public class DatabaseSeeder implements CommandLineRunner {
         Employee standardEmp = new Employee();
         standardEmp.setName("Amit Saha");
         standardEmp.setEmail("amit.saha@tripura.gov.in");
+        standardEmp.setService("Tripura Finance Service");
+        standardEmp.setLengthOfService("9 years");
         standardEmp.setPresentPostHeld("Senior IT Officer");
+        standardEmp.setPlaceOfPosting("Directorate of Finance, Agartala");
         standardEmp.setDepartment(financeDept);
         standardEmp.setOffice(mainOffice);
         standardEmp = employeeRepository.save(standardEmp);
