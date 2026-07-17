@@ -229,6 +229,15 @@ public class IprReturnServiceImpl implements IprReturnService {
     }
 
     @Override
+    public List<IprReturnResponse> getIprReturnsByEmployeeId(Long employeeId) {
+        return iprReturnRepository.findByEmployeeId(employeeId)
+                .stream()
+                .sorted((a, b) -> b.getReportingYear().compareTo(a.getReportingYear()))
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public IprReturnResponse approveIprReturn(Long id, String remarks) {
         IprReturn iprReturn = iprReturnRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("IPR Return not found"));
@@ -240,10 +249,11 @@ public class IprReturnServiceImpl implements IprReturnService {
             throw new BadRequestException("Can only approve SUBMITTED returns");
         }
 
-        iprReturn.setStatus(IprStatus.FORWARDED);
+        iprReturn.setStatus(IprStatus.APPROVED);
+        iprReturn.setApprovedAt(LocalDateTime.now());
 
         IprReturn saved = iprReturnRepository.save(iprReturn);
-        workflowLogService.log(saved, WorkflowAction.FORWARDED, getCurrentUserId(), getCurrentRole(), remarks);
+        workflowLogService.log(saved, WorkflowAction.APPROVED, getCurrentUserId(), getCurrentRole(), remarks);
 
         return toResponse(saved);
     }
@@ -258,69 +268,6 @@ public class IprReturnServiceImpl implements IprReturnService {
 
         if (iprReturn.getStatus() != IprStatus.SUBMITTED) {
             throw new BadRequestException("Can only return SUBMITTED returns");
-        }
-
-        if (remarks == null || remarks.isBlank()) {
-            throw new BadRequestException("Remarks are required when returning an IPR return");
-        }
-
-        iprReturn.setStatus(IprStatus.RETURNED);
-
-        IprReturn saved = iprReturnRepository.save(iprReturn);
-        workflowLogService.log(saved, WorkflowAction.RETURNED, getCurrentUserId(), getCurrentRole(), remarks);
-
-        return toResponse(saved);
-    }
-
-    // ─── AUTHORITY operations ──────────────────────────────────────────────────
-
-    @Override
-    public List<IprReturnResponse> getAllIprReturns() {
-        return iprReturnRepository.findAll()
-                .stream()
-                .map(this::toResponse).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<IprReturnResponse> getSubmittedHodIprReturns() {
-        // Authority sees SUBMITTED returns from HODs and FORWARDED returns from regular Employees
-        return iprReturnRepository.findAll()
-                .stream()
-                .filter(r -> {
-                    if (r.getEmployee().getUser() == null) return false;
-                    Role role = r.getEmployee().getUser().getRole();
-                    return r.getStatus() == IprStatus.FORWARDED;
-                })
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public IprReturnResponse approveHodIprReturn(Long id, String remarks) {
-        // Authority approves HOD returns — no department restriction needed
-        IprReturn iprReturn = iprReturnRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("IPR Return not found"));
-
-        if (iprReturn.getStatus() != IprStatus.SUBMITTED && iprReturn.getStatus() != IprStatus.FORWARDED) {
-            throw new BadRequestException("Can only approve SUBMITTED or FORWARDED returns");
-        }
-
-        iprReturn.setStatus(IprStatus.APPROVED);
-        iprReturn.setApprovedAt(LocalDateTime.now());
-
-        IprReturn saved = iprReturnRepository.save(iprReturn);
-        workflowLogService.log(saved, WorkflowAction.APPROVED, getCurrentUserId(), getCurrentRole(), remarks);
-
-        return toResponse(saved);
-    }
-
-    @Override
-    public IprReturnResponse returnHodIprReturn(Long id, String remarks) {
-        IprReturn iprReturn = iprReturnRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("IPR Return not found"));
-
-        if (iprReturn.getStatus() != IprStatus.SUBMITTED && iprReturn.getStatus() != IprStatus.FORWARDED) {
-            throw new BadRequestException("Can only return SUBMITTED or FORWARDED returns");
         }
 
         if (remarks == null || remarks.isBlank()) {

@@ -18,12 +18,7 @@ public interface IprReturnService {
     // HOD
     List<IprReturnResponse> getAllIprReturnsForHodDepartment();
     List<IprReturnResponse> getSubmittedIprReturnsForHod();
+    List<IprReturnResponse> getIprReturnsByEmployeeId(Long employeeId);
     IprReturnResponse approveIprReturn(Long id, String remarks);
     IprReturnResponse returnIprReturn(Long id, String remarks);
-
-    // Authority
-    List<IprReturnResponse> getAllIprReturns();
-    List<IprReturnResponse> getSubmittedHodIprReturns();
-    IprReturnResponse approveHodIprReturn(Long id, String remarks);
-    IprReturnResponse returnHodIprReturn(Long id, String remarks);
 }

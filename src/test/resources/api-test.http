@@ -1,36 +1,47 @@
 ###
 # ============================================================
-# IPR MANAGEMENT SYSTEM - COMPLETE API TEST FILE
+# IPR MANAGEMENT SYSTEM - TONED DOWN API TEST FILE
 # Spring Boot · Java 21 · PostgreSQL · Port 8081
 # ============================================================
 # INSTRUCTIONS:
-# 1. Run steps top-to-bottom on first setup (seed order matters)
-# 2. After Step 1  (Authority Login)  → update @authorityToken below
-# 3. After Step 9  (HOD Login)        → update @hodToken below
-# 4. After Step 10 (Employee Login)   → update @employeeToken below
-# 5. Replace @id variables with actual IDs returned from responses
+# 1. Start your database and backend (auto-updates schema).
+# 2. Since Authority is removed, seed the Department, Office, 
+#    Employees, and Users directly in the database (SQL below).
+# 3. Use Step 1 to log in as HOD      → update @hodToken
+# 4. Use Step 2 to log in as Employee → update @employeeToken
+# 5. Run steps top-to-bottom to test the flow
 # ============================================================
-# END-TO-END WORKFLOW SUMMARY:
-# [0] Seed authority user in DB → Login → get @authorityToken
-# [1] Authority creates: Department → Office → Employee(s) → User credentials
-# [2] HOD logs in → opens filing window (notification)
-# [3] Employee logs in → creates IPR Return → adds properties → adds declaration → submits
-# [4] HOD reviews → approves or returns with remarks
-# [5] If returned → Employee corrects → resubmits
-# [6] HOD approves → Authority sees final approved return
+# DATABASE SEED SQL (Run this in PgAdmin/PostgreSQL):
+#
+# -- Seed Department
+# INSERT INTO department (id, name) VALUES (nextval('department_sequence'), 'Finance Department');
+#
+# -- Seed Office
+# INSERT INTO office (id, name, department_id) VALUES (nextval('office_sequence'), 'Accounts Agartala', 1);
+#
+# -- Seed HOD Employee
+# INSERT INTO employee (id, name, email, service, length_of_service, present_post_held, place_of_posting, office_id) 
+# VALUES (nextval('employee_sequence'), 'Priyanka Majumdar', 'priyanka@nic.in', 'Tripura Civil Service', '15 years', 'Deputy Director Finance', 'Agartala', 1);
+#
+# -- Seed Regular Employee
+# INSERT INTO employee (id, name, email, service, length_of_service, present_post_held, place_of_posting, office_id) 
+# VALUES (nextval('employee_sequence'), 'Rajan Kumar Das', 'rajan@nic.in', 'Tripura Civil Service', '8 years', 'Assistant Accounts Officer', 'Agartala', 1);
+#
+# -- Seed HOD User Credentials (password: hod@123)
+# INSERT INTO users (id, username, password, role, employee_id) 
+# VALUES (nextval('user_sequence'), 'hod_finance', 'hod@123', 'ROLE_HOD', 1);
+#
+# -- Seed Employee User Credentials (password: emp@123)
+# INSERT INTO users (id, username, password, role, employee_id) 
+# VALUES (nextval('user_sequence'), 'emp_rajan', 'emp@123', 'ROLE_EMPLOYEE', 2);
 # ============================================================
-
 
 @baseUrl        = http://localhost:8081/api/v1
-@authorityToken = PASTE_AUTHORITY_TOKEN
 @hodToken       = PASTE_HOD_TOKEN_HERE
 @employeeToken  = PASTE_EMPLOYEE_TOKEN_HERE
 
-# ── Common IDs (fill after creation) ─────────────────────────
-@departmentId   = 1
+# ── Common IDs (fill after creation/fetching) ────────────────
 @officeId       = 1
-@employeeId     = 1
-@hodEmployeeId  = 2
 @iprReturnId    = 1
 @propertyId     = 1
 @declarationId  = 1
@@ -38,25 +49,10 @@
 
 
 # ============================================================
-# AUTH - LOGIN (public, no token required)
+# AUTH - LOGIN (public)
 # ============================================================
 
-### [PUBLIC] Step 1 - Seed Authority user in DB first, then login
-# Run this SQL once before testing:
-# INSERT INTO users (id, username, password, role, employee_id)
-# VALUES (nextval('user_sequence'), 'authority', 'authority@123', 'ROLE_AUTHORITY', null);
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{
-  "username": "authority",
-  "password": "authority@123"
-}
-
-### → Expected: { "token": "eyJ...", "role": "ROLE_AUTHORITY", ... }
-# → Copy token → paste into @ authorityToken above
-
-### [PUBLIC] Step 2 - HOD Login (after credentials created in Step 7)
+### Step 1 - HOD Login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -67,7 +63,8 @@ Content-Type: application/json
 
 ### → Copy token → paste into @hodToken above
 
-### [PUBLIC] Step 3 - Employee Login (after credentials created in Step 7.1)
+
+### Step 2 - Employee Login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -80,246 +77,10 @@ Content-Type: application/json
 
 
 # ============================================================
-# AUTHORITY - DEPARTMENT MANAGEMENT (Authority token required)
-# ============================================================
-
-### [AUTHORITY] Step 4 - Create Department
-POST {{baseUrl}}/authority/department/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Finance Department"
-}
-
-### → Note returned id → set @departmentId
-
-### [AUTHORITY] Step 4.1 - Create another Department
-POST {{baseUrl}}/authority/department/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Public Works Department"
-}
-
-### [AUTHORITY] Step 4.2 - Get All Departments
-GET {{baseUrl}}/authority/department/get
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 4.3 - Get Department By Id
-GET {{baseUrl}}/authority/department/get/{{departmentId}}
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 4.4 - Update Department
-PUT {{baseUrl}}/authority/department/update/{{departmentId}}
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Finance & Accounts Department"
-}
-
-### [AUTHORITY] Step 4.5 - Delete Department (cascades to offices, employees, users, returns)
-DELETE {{baseUrl}}/authority/department/delete/{{departmentId}}
-Authorization: Bearer {{authorityToken}}
-### (Commented out — run manually when needed)
-
-# ============================================================
-# AUTHORITY - OFFICE MANAGEMENT (Authority token required)
-# ============================================================
-
-### [AUTHORITY] Step 5 - Create Office (under Finance Department)
-POST {{baseUrl}}/authority/office/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Accounts Branch - Agartala",
-  "departmentId": {{departmentId}}
-}
-
-### → Note returned id → set @officeId
-
-### [AUTHORITY] Step 5.1 - Create another Office (same department)
-POST {{baseUrl}}/authority/office/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Treasury Office - Agartala",
-  "departmentId": {{departmentId}}
-}
-
-### [AUTHORITY] Step 5.2 - Get All Offices
-GET {{baseUrl}}/authority/office/get
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 5.3 - Get Office By Id
-GET {{baseUrl}}/authority/office/get/{{officeId}}
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 5.4 - Get Offices By Department
-GET {{baseUrl}}/authority/office/get/department/{{departmentId}}
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 5.5 - Update Office
-PUT {{baseUrl}}/authority/office/update/{{officeId}}
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Accounts Branch - Agartala (Updated)",
-  "departmentId": {{departmentId}}
-}
-
-### [AUTHORITY] Step 5.6 - Delete Office (cascades to employees, returns)
-DELETE {{baseUrl}}/authority/office/delete/{{officeId}}
-Authorization: Bearer {{authorityToken}}
-
-
-# ============================================================
-# AUTHORITY - EMPLOYEE MANAGEMENT (Authority token required)
-# ============================================================
-
-### [AUTHORITY] Step 6 - Create Employee (regular)
-POST {{baseUrl}}/authority/employee/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Rajan Kumar Das",
-  "email": "rajan.das@tripura.gov.in",
-  "service": "Tripura Civil Service",
-  "lengthOfService": "8 years",
-  "presentPostHeld": "Assistant Accounts Officer",
-  "placeOfPosting": "Agartala",
-  "officeId": {{officeId}}
-}
-
-### → Note returned id → set @employeeId
-
-### [AUTHORITY] Step 6.1 - Create Employee (will become HOD)
-POST {{baseUrl}}/authority/employee/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Priyanka Majumdar",
-  "email": "priyanka.majumdar@tripura.gov.in",
-  "service": "Tripura Civil Service",
-  "lengthOfService": "15 years",
-  "presentPostHeld": "Deputy Director Finance",
-  "placeOfPosting": "Agartala",
-  "officeId": {{officeId}}
-}
-
-### → Note returned id → set @hodEmployeeId
-
-### [AUTHORITY] Step 6.2 - Get All Employees
-GET {{baseUrl}}/authority/employee/get
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 6.3 - Get Employee By Id
-GET {{baseUrl}}/authority/employee/get/{{employeeId}}
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 6.4 - Update Employee
-PUT {{baseUrl}}/authority/employee/update/{{employeeId}}
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Rajan Kumar Das",
-  "email": "rajan.das@tripura.gov.in",
-  "service": "Tripura Civil Service",
-  "lengthOfService": "9 years",
-  "presentPostHeld": "Senior Accounts Officer",
-  "placeOfPosting": "Agartala",
-  "officeId": {{officeId}}
-}
-
-### [AUTHORITY] Step 6.5 - Delete Employee (cascades to user credentials and all IPR returns)
-DELETE {{baseUrl}}/authority/employee/delete/{{employeeId}}
-Authorization: Bearer {{authorityToken}}
-
-
-# ============================================================
-# AUTHORITY - USER CREDENTIAL MANAGEMENT (Authority token required)
-# ============================================================
-
-### [AUTHORITY] Step 7 - Create HOD credentials
-POST {{baseUrl}}/authority/user/create
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "username": "hod_finance",
-  "password": "hod@123",
-  "role": "ROLE_HOD",
-  "employeeId": {{hodEmployeeId}}
-}
-
-### Valid roles: ROLE_EMPLOYEE, ROLE_HOD, ROLE_AUTHORITY
-
-### [AUTHORITY] Step 7.1 - Create Employee credentials
-POST {{baseUrl}}/authority/user/create
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "username": "emp_rajan",
-  "password": "emp@123",
-  "role": "ROLE_EMPLOYEE",
-  "employeeId": {{employeeId}}
-}
-
-### [AUTHORITY] Step 7.2 - Get All Users
-GET {{baseUrl}}/authority/user/get
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 7.3 - Delete User credentials (employee record stays, removes login access)
-DELETE {{baseUrl}}/authority/user/delete/{{employeeId}}
-Authorization: Bearer {{authorityToken}}
-
-
-# ============================================================
-# AUTHORITY - VIEW & MANAGE ALL IPR RETURNS (system-wide)
-# ============================================================
-
-### [AUTHORITY] Step 8 - Get All IPR Returns (all roles, all departments)
-GET {{baseUrl}}/authority/ipr-return/get
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 8.1 - Get HOD Pending Returns (submitted by HOD, pending AUTHORITY approval)
-GET {{baseUrl}}/authority/ipr-return/hod/pending
-Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 8.2 - Approve HOD's IPR Return
-PUT {{baseUrl}}/authority/ipr-return/approve/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "remarks": "Verified and approved by Authority"
-}
-
-### [AUTHORITY] Step 8.3 - Return HOD's IPR Return (mandatory remarks)
-PUT {{baseUrl}}/authority/ipr-return/return/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "remarks": "Declaration date is incorrect. Please correct and resubmit."
-}
-
-
-### ============================================================
 # HOD - FILING WINDOW / NOTIFICATIONS (HOD token required)
 # ============================================================
-# Login as HOD first (Step 2), then run these.
 
-### [HOD] Step 9 - Open Filing Window for an Office (create notification)
+### [HOD] Step 3 - Open Filing Window for the Office
 POST {{baseUrl}}/hod/notification/add
 Content-Type: application/json
 Authorization: Bearer {{hodToken}}
@@ -333,143 +94,44 @@ Authorization: Bearer {{hodToken}}
   "active": true
 }
 
-# Rules: endDate - startDate must be <= 45 days
-# Only one active notification per office at a time
-# → Note returned id → set @notificationId
+### → Note returned id → set @notificationId
 
-### [HOD] Step 9.1 - Get All Notifications (HOD's department only)
-GET {{baseUrl}}/hod/notification/get
-Authorization: Bearer {{hodToken}}
 
-### [HOD] Step 9.2 - Get Notifications By Office
-GET {{baseUrl}}/hod/notification/get/office/{{officeId}}
-Authorization: Bearer {{hodToken}}
-
-### [HOD] Step 9.3 - Get Active Notification for an Office
+### [HOD] Step 3.1 - Get Active Notification for the Office
 GET {{baseUrl}}/hod/notification/get/active/{{officeId}}
 Authorization: Bearer {{hodToken}}
 
-# Returns 404 if no active notification for that office
 
-### [HOD] Step 9.4 - Extend Filing Window (only end date can be extended, not reduced)
+### [HOD] Step 3.2 - Extend Filing Window
 PUT {{baseUrl}}/hod/notification/update/{{notificationId}}
 Content-Type: application/json
 Authorization: Bearer {{hodToken}}
 
 {
   "session": "2025-2026",
-  "message": "Filing window extended by 2 weeks due to technical issues.",
+  "message": "Filing window extended by 2 weeks.",
   "officeId": {{officeId}},
   "startDate": "2026-07-01",
   "endDate": "2026-08-28",
   "active": true
 }
 
-# Rules: new endDate cannot be before current endDate
-# Total window (from original startDate) cannot exceed 60 days
-
-### [HOD] Step 9.5 - Deactivate Notification (close filing window early)
-PUT {{baseUrl}}/hod/notification/update/{{notificationId}}
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "session": "2025-2026",
-  "message": "Filing window closed.",
-  "officeId": {{officeId}},
-  "startDate": "2026-07-01",
-  "endDate": "2026-08-14",
-  "active": false
-}
-
-### [HOD] Step 9.6 - Delete Notification
-# DELETE {{baseUrl}}/hod/notification/delete/{{notificationId}}
-# Authorization: Bearer {{hodToken}}
-
 
 # ============================================================
-# HOD - VIEW & MANAGE EMPLOYEE IPR RETURNS (HOD token required)
+# EMPLOYEE - PROFILE & FILING WORKFLOW
 # ============================================================
 
-### [HOD] Step 10 - Get All Employee Returns in HOD's Department
-GET {{baseUrl}}/hod/ipr-return/get
-Authorization: Bearer {{hodToken}}
-
-# Returns only ROLE_EMPLOYEE returns within HOD's department
-
-### [HOD] Step 10.1 - Get Pending (Submitted) Returns
-GET {{baseUrl}}/hod/ipr-return/pending
-Authorization: Bearer {{hodToken}}
-
-# Returns only SUBMITTED returns for HOD's department employees
-
-### [HOD] Step 10.2 - Get IPR Return By Id
-GET {{baseUrl}}/hod/ipr-return/get/{{iprReturnId}}
-Authorization: Bearer {{hodToken}}
-
-# Returns 400 if return belongs to a different department
-
-### [HOD] Step 10.3 - Approve Employee's IPR Return
-PUT {{baseUrl}}/hod/ipr-return/approve/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "remarks": "Return verified. All properties declared correctly."
-}
-
-# Remarks are optional for approve
-# Return must be in SUBMITTED status
-
-### [HOD] Step 10.4 - Return Employee's IPR Return (mandatory remarks)
-PUT {{baseUrl}}/hod/ipr-return/return/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "remarks": "Property at Krishnanagar not declared properly. Please add acquisition mode and correct the present value."
-}
-
-# Remarks are MANDATORY for return action
-# Return must be in SUBMITTED status
-
-### [HOD] Step 10.5 - Get Workflow Log for an IPR Return
-GET {{baseUrl}}/hod/workflow-log/get/ipr/{{iprReturnId}}
-Authorization: Bearer {{hodToken}}
-
-# Returns all actions: CREATED, SUBMITTED, RETURNED, APPROVED
-
-### [HOD] Step 10.6 - Get Employees in HOD's Department
-GET {{baseUrl}}/hod/employee/get
-Authorization: Bearer {{hodToken}}
-
-
-# ============================================================
-# EMPLOYEE - PROFILE (Employee token required)
-# ============================================================
-# Login as Employee first (Step 3), then run these.
-
-### [EMPLOYEE] Step 11 - Get My Profile
+### [EMPLOYEE] Step 4 - Get My Profile
 GET {{baseUrl}}/employee/me
 Authorization: Bearer {{employeeToken}}
 
-# Returns: id, name, email, service, lengthOfService,
-#          presentPostHeld, placeOfPosting, officeId,
-#          officeName, departmentId, departmentName
 
-
-# ============================================================
-# EMPLOYEE - IPR RETURN (core filing workflow)
-# ============================================================
-
-### [EMPLOYEE] Step 12 - Check if Filing Window is Open for my Office
+### [EMPLOYEE] Step 5 - Check if Filing Window is Open
 GET {{baseUrl}}/employee/notification/get/active/{{officeId}}
 Authorization: Bearer {{employeeToken}}
 
-# Returns active notification details if window is open
-# Returns 404 if no active notification for that office
 
-### [EMPLOYEE] Step 13 - Create IPR Return (DRAFT) — requires open filing window
+### [EMPLOYEE] Step 6 - Create IPR Return (DRAFT)
 POST {{baseUrl}}/employee/ipr-return/add
 Content-Type: application/json
 Authorization: Bearer {{employeeToken}}
@@ -481,62 +143,10 @@ Authorization: Bearer {{employeeToken}}
   "isNoProperty": false
 }
 
-# isNoProperty: true  → skip adding properties, can submit directly
-# isNoProperty: false → must add at least one property before submit
-# → Note returned iprId → set @iprReturnId
-
-### [EMPLOYEE] Step 13.1 - Create IPR Return with No Property declaration
-POST {{baseUrl}}/employee/ipr-return/add
-Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
-
-{
-  "reportingYear": "2024-2025",
-  "asOnDate": "2025-07-31",
-  "totalAnnualIncome": 650000.00,
-  "isNoProperty": true
-}
-
-### [EMPLOYEE] Step 13.2 - Get My IPR Returns (all)
-GET {{baseUrl}}/employee/ipr-return/get
-Authorization: Bearer {{employeeToken}}
-
-### [EMPLOYEE] Step 13.3 - Get IPR Return By Id
-GET {{baseUrl}}/employee/ipr-return/get/{{iprReturnId}}
-Authorization: Bearer {{employeeToken}}
-
-### [EMPLOYEE] Step 13.4 - Update IPR Return (only DRAFT or RETURNED status)
-PUT {{baseUrl}}/employee/ipr-return/update/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
-
-{
-  "reportingYear": "2025-2026",
-  "asOnDate": "2026-07-31",
-  "totalAnnualIncome": 750000.00,
-  "isNoProperty": false
-}
-
-# 400 error if status is SUBMITTED or APPROVED
-
-### [EMPLOYEE] Step 13.5 - Submit IPR Return (DRAFT or RETURNED → SUBMITTED)
-PUT {{baseUrl}}/employee/ipr-return/submit/{{iprReturnId}}
-Authorization: Bearer {{employeeToken}}
-
-# 400 if isNoProperty=false and no properties added yet
-# 400 if filing window is closed
-
-### [EMPLOYEE] Step 13.6 - Delete IPR Return (only DRAFT status)
-# DELETE {{baseUrl}}/employee/ipr-return/delete/{{iprReturnId}}
-# Authorization: Bearer {{employeeToken}}
-# 400 if status is not DRAFT
+### → Note returned iprId → set @iprReturnId
 
 
-# ============================================================
-# EMPLOYEE - PROPERTY MANAGEMENT (Employee token required)
-# ============================================================
-
-### [EMPLOYEE] Step 14 - Add Property to IPR Return (self-owned)
+### [EMPLOYEE] Step 7 - Add Property
 POST {{baseUrl}}/employee/property/add
 Content-Type: application/json
 Authorization: Bearer {{employeeToken}}
@@ -545,140 +155,87 @@ Authorization: Bearer {{employeeToken}}
   "iprReturnId": {{iprReturnId}},
   "locationAddress": "Plot No. 12, Krishnanagar, Agartala, Tripura - 799001",
   "propertyType": "Residential House",
-  "propertyDescription": "Double storey RCC building, 1200 sq ft",
+  "propertyDescription": "Double storey RCC building",
   "acquisitionCost": 2500000.00,
   "acquisitionYear": "2019",
   "presentValue": 3200000.00,
   "ownerName": "Rajan Kumar Das",
   "ownerRelation": "SELF",
   "acquisitionMode": "Purchase",
-  "acquisitionDetails": "Purchased from private party. Registered at Sub-Registrar office, Agartala.",
+  "acquisitionDetails": "Registered at Sub-Registrar office, Agartala.",
   "annualIncome": 0.00,
-  "remarks": "Self-occupied residential house"
+  "remarks": "Self-occupied"
 }
 
-# ownerRelation: SELF / SPOUSE / DEPENDENT
-# acquisitionMode: Purchase / Inheritance / Gift / Lease / Mortgage / Other
-# → Note returned id → set @propertyId
+### → Note returned id → set @propertyId
 
-### [EMPLOYEE] Step 14.1 - Add Property owned by Spouse
-POST {{baseUrl}}/employee/property/add
+
+### [EMPLOYEE] Step 8 - Add Declaration
+POST {{baseUrl}}/employee/declaration/add
 Content-Type: application/json
 Authorization: Bearer {{employeeToken}}
 
 {
   "iprReturnId": {{iprReturnId}},
-  "locationAddress": "Agricultural Land, Mohanpur, West Tripura",
-  "propertyType": "Agricultural Land",
-  "propertyDescription": "2 bigha agricultural land, cultivated",
-  "acquisitionCost": 800000.00,
-  "acquisitionYear": "2015",
-  "presentValue": 1500000.00,
-  "ownerName": "Sunita Das",
-  "ownerRelation": "SPOUSE",
-  "acquisitionMode": "Inheritance",
-  "acquisitionDetails": "Inherited from father-in-law. Mutation done in 2016.",
-  "annualIncome": 45000.00,
-  "remarks": "Income from paddy cultivation"
-}
-
-### [EMPLOYEE] Step 14.2 - Get Properties for an IPR Return
-GET {{baseUrl}}/employee/property/get/ipr/{{iprReturnId}}
-Authorization: Bearer {{employeeToken}}
-
-### [EMPLOYEE] Step 14.3 - Update Property
-PUT {{baseUrl}}/employee/property/update/{{propertyId}}
-Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
-
-{
-  "iprReturnId": {{iprReturnId}},
-  "locationAddress": "Plot No. 12, Krishnanagar, Agartala, Tripura - 799001",
-  "propertyType": "Residential House",
-  "propertyDescription": "Double storey RCC building, 1200 sq ft, self-occupied",
-  "acquisitionCost": 2500000.00,
-  "acquisitionYear": "2019",
-  "presentValue": 3500000.00,
-  "ownerName": "Rajan Kumar Das",
-  "ownerRelation": "SELF",
-  "acquisitionMode": "Purchase",
-  "acquisitionDetails": "Purchased from private party via bank loan.",
-  "annualIncome": 0.00,
-  "remarks": "Self-occupied. Bank loan fully repaid."
-}
-
-# 400 error if return is in SUBMITTED or APPROVED status
-
-### [EMPLOYEE] Step 14.4 - Delete Property
-# DELETE {{baseUrl}}/employee/property/delete/{{propertyId}}
-# Authorization: Bearer {{employeeToken}}
-# 400 error if return is in SUBMITTED or APPROVED status
-
-
-# ============================================================
-# EMPLOYEE - DECLARATION (Employee token required)
-# ============================================================
-
-### [EMPLOYEE] Step 15 - Add Declaration (sign the IPR return)
-POST {{baseUrl}}/employee/ipr-declaration/add
-Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
-
-{
-  "iprReturnId": {{iprReturnId}},
-  "declarationText": "I hereby declare that the return enclosed namely, Form - VI are complete, true and correct to the best of my knowledge and belief in respect of information due to be furnished by me under the provision of Rule-18 of the Tripura Civil Services (Conduct) Rules, 1988.",
+  "declarationText": "I hereby declare that the return enclosed are complete, true and correct to the best of my knowledge.",
   "agreed": true,
   "declarationDate": "2026-07-31",
   "place": "Agartala",
   "employeeSignature": "Rajan Kumar Das"
 }
 
-# Only one declaration per IPR return (409 if already exists)
-# → Note returned id → set @declarationId
 
-### [EMPLOYEE] Step 15.1 - Get Declaration for an IPR Return
-GET {{baseUrl}}/employee/ipr-declaration/get/ipr/{{iprReturnId}}
+### [EMPLOYEE] Step 9 - Submit IPR Return (DRAFT → SUBMITTED)
+PUT {{baseUrl}}/employee/ipr-return/submit/{{iprReturnId}}
 Authorization: Bearer {{employeeToken}}
 
-### [EMPLOYEE] Step 15.2 - Update Declaration
-PUT {{baseUrl}}/employee/ipr-declaration/update/{{declarationId}}
+
+# ============================================================
+# HOD - REVIEW & APPROVE/RETURN WORKFLOW
+# ============================================================
+
+### [HOD] Step 10 - View Pending returns in department
+GET {{baseUrl}}/hod/ipr-return/pending
+Authorization: Bearer {{hodToken}}
+
+
+### [HOD] Step 11 - Get IPR Return by ID
+GET {{baseUrl}}/hod/ipr-return/get/{{iprReturnId}}
+Authorization: Bearer {{hodToken}}
+
+
+### [HOD] Step 12 - Return IPR to Employee (for correction)
+PUT {{baseUrl}}/hod/ipr-return/return/{{iprReturnId}}
 Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
+Authorization: Bearer {{hodToken}}
 
 {
-  "iprReturnId": {{iprReturnId}},
-  "declarationText": "I hereby declare that the return enclosed namely, Form - VI are complete, true and correct to the best of my knowledge and belief in respect of information due to be furnished by me under the provision of Rule-18 of the Tripura Civil Services (Conduct) Rules, 1988.",
-  "agreed": true,
-  "declarationDate": "2026-07-31",
-  "place": "Agartala",
-  "employeeSignature": "Rajan Kumar Das"
+  "remarks": "Please provide more details on property acquisition cost."
 }
 
-### [EMPLOYEE] Step 15.3 - Delete Declaration
-# DELETE {{baseUrl}}/employee/ipr-declaration/delete/{{declarationId}}
-# Authorization: Bearer {{employeeToken}}
+# Employee then fixes details and calls Submit again (Step 9) before proceeding.
+
+
+### [HOD] Step 13 - Approve Employee's IPR Return (Final terminal state for Employees)
+PUT {{baseUrl}}/hod/ipr-return/approve/{{iprReturnId}}
+Content-Type: application/json
+Authorization: Bearer {{hodToken}}
+
+{
+  "remarks": "Reviewed and Approved."
+}
+
+
+### [HOD] Step 14 - View Workflow log of return
+GET {{baseUrl}}/hod/workflow-log/get/{{iprReturnId}}
+Authorization: Bearer {{hodToken}}
 
 
 # ============================================================
-# EMPLOYEE - WORKFLOW LOG (Employee token required)
+# HOD - FILING THEIR OWN RETURN
 # ============================================================
 
-### [EMPLOYEE] Step 16 - Get Workflow History of my IPR Return
-GET {{baseUrl}}/employee/workflow-log/get/ipr/{{iprReturnId}}
-Authorization: Bearer {{employeeToken}}
-
-# Returns all actions in chronological order:
-# CREATED → SUBMITTED → RETURNED → SUBMITTED → APPROVED
-# Each log has: action, actionByUserId, role, remarks, actionDate
-
-
-# ============================================================
-# HOD - FILING THEIR OWN IPR RETURN (HOD token, employee endpoints)
-# ============================================================
-# HOD uses the same /employee endpoints as a regular employee.
-# Key difference: the filing window check is SKIPPED for ROLE_HOD.
-
-### [HOD] Step 17 - HOD creates their own IPR Return (no window check)
+### [HOD] Step 15 - HOD creates their own return
 POST {{baseUrl}}/employee/ipr-return/add
 Content-Type: application/json
 Authorization: Bearer {{hodToken}}
@@ -687,241 +244,49 @@ Authorization: Bearer {{hodToken}}
   "reportingYear": "2025-2026",
   "asOnDate": "2026-07-31",
   "totalAnnualIncome": 1200000.00,
-  "isNoProperty": false
+  "isNoProperty": true
 }
 
-### [HOD] Step 17.1 - HOD adds property to their own return
-POST {{baseUrl}}/employee/property/add
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
+### → Set new @iprReturnId
 
-{
-  "iprReturnId": {{iprReturnId}},
-  "locationAddress": "House No. 45, Battala, Agartala, Tripura",
-  "propertyType": "Residential House",
-  "propertyDescription": "Three bedroom apartment, 1800 sq ft",
-  "acquisitionCost": 4500000.00,
-  "acquisitionYear": "2017",
-  "presentValue": 6000000.00,
-  "ownerName": "Priyanka Majumdar",
-  "ownerRelation": "SELF",
-  "acquisitionMode": "Purchase",
-  "acquisitionDetails": "Purchased through SBI home loan. Loan closed in 2024.",
-  "annualIncome": 0.00,
-  "remarks": "Self-occupied"
-}
 
-### [HOD] Step 17.2 - HOD adds declaration to their return
-POST {{baseUrl}}/employee/ipr-declaration/add
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "iprReturnId": {{iprReturnId}},
-  "declarationText": "I hereby declare that the return enclosed namely, Form - VI are complete, true and correct to the best of my knowledge and belief in respect of information due to be furnished by me under the provision of Rule-18 of the Tripura Civil Services (Conduct) Rules, 1988.",
-  "agreed": true,
-  "declarationDate": "2026-07-31",
-  "place": "Agartala",
-  "employeeSignature": "Priyanka Majumdar"
-}
-
-### [HOD] Step 17.3 - HOD submits their return (goes to AUTHORITY for approval)
+### [HOD] Step 16 - HOD submits their own return (Automatically marked FORWARDED)
 PUT {{baseUrl}}/employee/ipr-return/submit/{{iprReturnId}}
 Authorization: Bearer {{hodToken}}
 
 
 # ============================================================
-# ERROR / EDGE CASE TESTS
+# ERROR & SECURITY TESTING (Validating Bug Fixes)
 # ============================================================
 
-### [TEST] Step 18 - Login with wrong password → 400
+### [TEST] Step 17 - Login with wrong credentials → 400 Bad Request
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
   "username": "emp_rajan",
-  "password": "wrong_password"
+  "password": "wrongpassword"
 }
 
-### [TEST] Step 18.1 - Access AUTHORITY endpoint with EMPLOYEE token → 403
-GET {{baseUrl}}/authority/employee/get
+
+### [TEST] Step 18 - Access HOD endpoint with Employee token → 403 Forbidden
+GET {{baseUrl}}/hod/ipr-return/pending
 Authorization: Bearer {{employeeToken}}
 
-### [TEST] Step 18.2 - Access HOD endpoint with EMPLOYEE token → 403
-GET {{baseUrl}}/hod/ipr-return/get
-Authorization: Bearer {{employeeToken}}
 
-### [TEST] Step 18.3 - Create IPR Return without open filing window → 400
+### [TEST] Step 19 - Request with invalid JWT Token → 401 Unauthorized (returns clean JSON error body)
+GET {{baseUrl}}/employee/me
+Authorization: Bearer invalid.token.string
+
+
+### [TEST] Step 20 - Validation failure (blank year) → 400 Bad Request (returns structured fieldErrors mapping)
 POST {{baseUrl}}/employee/ipr-return/add
 Content-Type: application/json
 Authorization: Bearer {{employeeToken}}
 
 {
-  "reportingYear": "2030-2031",
-  "asOnDate": "2031-07-31",
-  "totalAnnualIncome": 800000.00,
-  "isNoProperty": false
-}
-
-### [TEST] Step 18.4 - Submit IPR Return without any properties (isNoProperty=false) → 400
-PUT {{baseUrl}}/employee/ipr-return/submit/{{iprReturnId}}
-Authorization: Bearer {{employeeToken}}
-
-# Use an iprId that has isNoProperty=false and zero properties added
-
-### [TEST] Step 18.5 - Duplicate IPR Return for same reporting year → 400
-POST {{baseUrl}}/employee/ipr-return/add
-Content-Type: application/json
-Authorization: Bearer {{employeeToken}}
-
-{
-  "reportingYear": "2025-2026",
+  "reportingYear": "",
   "asOnDate": "2026-07-31",
   "totalAnnualIncome": 720000.00,
   "isNoProperty": false
 }
-
-# Expected: "You have already filed an IPR return for 2025-2026"
-
-### [TEST] Step 18.6 - Duplicate username → 409
-POST {{baseUrl}}/authority/user/create
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "username": "emp_rajan",
-  "password": "another@123",
-  "role": "ROLE_EMPLOYEE",
-  "employeeId": {{employeeId}}
-}
-
-### [TEST] Step 18.7 - Create notification exceeding 45 days → 400
-POST {{baseUrl}}/hod/notification/add
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "session": "2025-2026",
-  "message": "Test window",
-  "officeId": {{officeId}},
-  "startDate": "2026-07-01",
-  "endDate": "2026-09-30",
-  "active": true
-}
-
-# endDate - startDate = 91 days, exceeds 45-day limit → 400
-
-### [TEST] Step 18.8 - Approve IPR that is not in SUBMITTED status → 400
-PUT {{baseUrl}}/hod/ipr-return/approve/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "remarks": "Approved"
-}
-
-# Use an iprId that is in DRAFT status
-
-### [TEST] Step 18.9 - Return IPR without remarks → 400
-PUT {{baseUrl}}/hod/ipr-return/return/{{iprReturnId}}
-Content-Type: application/json
-Authorization: Bearer {{hodToken}}
-
-{
-  "remarks": ""
-}
-
-# Empty remarks for return action → 400
-
-### [TEST] Step 18.10 - Request with no token → 401
-GET {{baseUrl}}/employee/me
-
-### [TEST] Step 18.11 - Request with invalid/expired token → 401
-GET {{baseUrl}}/employee/me
-Authorization: Bearer invalid.token.here
-
-### [TEST] Step 18.12 - Duplicate department name → 409
-POST {{baseUrl}}/authority/department/add
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "name": "Finance & Accounts Department"
-}
-
-### [TEST] Step 18.13 - Try adding second HOD credentials to same office → 409 or 400
-POST {{baseUrl}}/authority/user/create
-Content-Type: application/json
-Authorization: Bearer {{authorityToken}}
-
-{
-  "username": "hod_finance_duplicate",
-  "password": "hod@123",
-  "role": "ROLE_HOD",
-  "employeeId": {{employeeId}}
-}
-
-
-# ============================================================
-# CLEANUP - DELETE OPERATIONS (run manually at the very end)
-# ============================================================
-
-### [EMPLOYEE] Step 19 - Delete Property
-# DELETE {{baseUrl}}/employee/property/delete/{{propertyId}}
-# Authorization: Bearer {{employeeToken}}
-
-### [EMPLOYEE] Step 19.1 - Delete Declaration
-# DELETE {{baseUrl}}/employee/ipr-declaration/delete/{{declarationId}}
-# Authorization: Bearer {{employeeToken}}
-
-### [EMPLOYEE] Step 19.2 - Delete IPR Return (only DRAFT status)
-# DELETE {{baseUrl}}/employee/ipr-return/delete/{{iprReturnId}}
-# Authorization: Bearer {{employeeToken}}
-
-### [HOD] Step 19.3 - Delete Notification
-# DELETE {{baseUrl}}/hod/notification/delete/{{notificationId}}
-# Authorization: Bearer {{hodToken}}
-
-### [AUTHORITY] Step 19.4 - Delete User credentials
-# DELETE {{baseUrl}}/authority/user/delete/{{employeeId}}
-# Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 19.5 - Delete Employee
-# DELETE {{baseUrl}}/authority/employee/delete/{{employeeId}}
-# Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 19.6 - Delete Office
-# DELETE {{baseUrl}}/authority/office/delete/{{officeId}}
-# Authorization: Bearer {{authorityToken}}
-
-### [AUTHORITY] Step 19.7 - Delete Department
-# DELETE {{baseUrl}}/authority/department/delete/{{departmentId}}
-# Authorization: Bearer {{authorityToken}}
-
-
-# ============================================================
-# COMPLETE END-TO-END WORKFLOW REFERENCE
-# ============================================================
-# Step 1:  [PUBLIC]     Seed authority user in DB → login → get @authorityToken
-# Step 2:  [AUTHORITY]  Create Department
-# Step 3:  [AUTHORITY]  Create Office under Department
-# Step 4:  [AUTHORITY]  Create Employee (regular)
-# Step 5:  [AUTHORITY]  Create Employee (will be HOD)
-# Step 6:  [AUTHORITY]  Create HOD credentials (ROLE_HOD)
-# Step 7:  [AUTHORITY]  Create Employee credentials (ROLE_EMPLOYEE)
-# Step 8:  [PUBLIC]     HOD login → get @hodToken
-# Step 9:  [HOD]        Open Filing Window (create notification)
-# Step 10: [PUBLIC]     Employee login → get @employeeToken
-# Step 11: [EMPLOYEE]   Check filing window is open
-# Step 12: [EMPLOYEE]   Create IPR Return (→ DRAFT)
-# Step 13: [EMPLOYEE]   Add Property 1 (self-owned)
-# Step 14: [EMPLOYEE]   Add Property 2 (spouse)
-# Step 15: [EMPLOYEE]   Add Declaration
-# Step 16: [EMPLOYEE]   Submit IPR Return (→ SUBMITTED)
-# Step 17: [HOD]        View pending returns
-# Step 18: [HOD]        Return IPR with remarks (→ RETURNED)
-# Step 19: [EMPLOYEE]   Update return / properties
-# Step 20: [EMPLOYEE]   Resubmit (→ SUBMITTED again)
-# Step 21: [HOD]        Approve IPR Return (→ APPROVED)
-# Step 22: [EMPLOYEE]   View workflow log (CREATED→SUBMITTED→RETURNED→SUBMITTED→APPROVED)
-# ============================================================

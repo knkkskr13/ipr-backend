@@ -53,6 +53,12 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            try {
+                response.getWriter().write("{\"status\": 401, \"error\": \"Unauthorized: " + e.getMessage() + "\"}");
+            } catch (IOException ioException) {
+                // Ignore writer errors
+            }
             return;
         }
 

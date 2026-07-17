@@ -17,7 +17,7 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
-                "https://ipr-frontend-l3tj.onrender.com"  // production frontend
+                "https://ipr-frontend.onrender.com"  // production frontend
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

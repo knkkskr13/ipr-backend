@@ -48,8 +48,8 @@ public class IprWorkflowLogServiceImpl implements IprWorkflowLogService {
         userRepository.findById(log.getActionByUserId()).ifPresent(user -> {
             if (user.getEmployee() != null) {
                 response.setActionByUserName(user.getEmployee().getName());
-            } else if (user.getRole() == com.nic.ipr.shared.enums.Role.ROLE_AUTHORITY) {
-                response.setActionByUserName("Super Admin (Authority)");
+            } else {
+                response.setActionByUserName(user.getUsername());
             }
         });
 

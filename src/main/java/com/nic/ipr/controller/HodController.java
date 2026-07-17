@@ -70,6 +70,12 @@ public class HodController {
         return ResponseEntity.ok(iprReturnService.getIprReturnById(id));
     }
 
+    //to get return of employee
+    @GetMapping("/ipr-return/employee/{employeeId}")
+    public ResponseEntity<List<IprReturnResponse>> getReturnsByEmployee(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(iprReturnService.getIprReturnsByEmployeeId(employeeId));
+    }
+
     @PutMapping("/ipr-return/approve/{id}")
     public ResponseEntity<IprReturnResponse> approveReturn(@PathVariable Long id,
                                                            @RequestBody(required = false) IprReturnDecisionRequest request) {
